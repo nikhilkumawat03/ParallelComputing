@@ -12,6 +12,8 @@ typedef struct arrguments{
 	float **matrix;
 	float **lowerMatrix;
 	float **upperMatrix;
+	int threadNo;
+	int col;
 }arg;
 
 int matrixSize = 0;		//size of matrix.
@@ -27,8 +29,23 @@ void printMatrix(float **matrix){
 	cout << "-------------------------------\n";
 }
 
-void getLowerUpperMatrix(){
-	
+void *getLowerUpperMatrix(void *tmp){
+	arg *args = (arg*)tmp;
+	int col = args->col + 1;
+	int totalRows = matrixSize - col;	//get total rows
+	int rowsPerThread = totalRows / threadCount;
+	if (rowsPerThread == 0)
+		rowsPerThread = totalRows;
+	int start = col + rowsPerThread*(args->threadNo), end = start + rowsPerThread - 1;
+
+	for (int i = start; i <= end;++i){
+		args->lowerMatrix[i][col-1] = args->matrix[i][col-1] / args->matrix[col-1][col-1];
+		args->upperMatrix[col-1][i] = args->matrix[col-1][i];
+		for (int j = start; j < matrixSize; ++j){
+			args->matrix[i][j] = args->matrix[i][j] - (args->matrix[i][col-1] / args->matrix[col-1][col-1])*(args->matrix[i][col]);
+		}
+	}
+	pthread_exit(NULL);
 }
 
 void luDecomposition(arg *&args){
@@ -47,9 +64,10 @@ void luDecomposition(arg *&args){
 		
 		swap(args->matrix[col], args->matrix[swapRowNo]);
 		printMatrix(args->matrix);
-		
+		args->col = col;
 		for (int threadNo = 0; threadNo < threadCount; ++threadNo){
-			
+			args->threadNo = threadNo;
+			pthread_create(t+threadNo, NULL, &getLowerUpperMatrix, (void*)args);
 		}
 	}
 }
