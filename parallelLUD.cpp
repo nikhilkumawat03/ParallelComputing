@@ -1,10 +1,11 @@
-// Author: Nikhil Kumawat
+// Author: Nikhil Kumawat, Chandrakishor
 // Date: 06/12/2021
 // Program: LU Decomposition using Gaussian Elimination
 
 #include <iostream>
 #include <climits>
 #include <pthread.h>
+#include <cmath>
 
 using namespace std;
 
@@ -32,12 +33,14 @@ void printMatrix(float **matrix){
 void *getLowerUpperMatrix(void *tmp){
 	arg *args = (arg*)tmp;
 	int col = args->col + 1;
-	int totalRows = matrixSize - col;	//get total rows
-	int rowsPerThread = totalRows / threadCount;
+	float totalRows = matrixSize - col;	//get total rows
+	int rowsPerThread = ceil (totalRows / (float)threadCount);
 	if (rowsPerThread == 0)
 		rowsPerThread = totalRows;
 	int start = col + rowsPerThread*(args->threadNo), end = start + rowsPerThread - 1;
-
+	if (end >= matrixSize)
+		end = matrixSize - 1;
+	cout << args->threadNo << " " << start << " " << end << endl;
 	for (int i = start; i <= end;++i){
 		args->lowerMatrix[i][col-1] = args->matrix[i][col-1] / args->matrix[col-1][col-1];
 		args->upperMatrix[col-1][i] = args->matrix[col-1][i];
@@ -45,6 +48,10 @@ void *getLowerUpperMatrix(void *tmp){
 			args->matrix[i][j] = args->matrix[i][j] - (args->matrix[i][col-1] / args->matrix[col-1][col-1])*(args->matrix[i][col]);
 		}
 	}
+	/*for (int i = 0; i < matrixSize; ++i){
+		cout << args->upperMatrix[col-1][i] << " ";
+	}
+	cout << endl;*/
 	pthread_exit(NULL);
 }
 
@@ -63,13 +70,24 @@ void luDecomposition(arg *&args){
 		}
 		
 		swap(args->matrix[col], args->matrix[swapRowNo]);
-		printMatrix(args->matrix);
+		//printMatrix(args->matrix);		Debug
 		args->col = col;
 		for (int threadNo = 0; threadNo < threadCount; ++threadNo){
 			args->threadNo = threadNo;
 			pthread_create(t+threadNo, NULL, &getLowerUpperMatrix, (void*)args);
 		}
+		
+		for (int i = 0; i < threadCount; ++i)
+			pthread_join(t[i], NULL);
+			
+		
 	}
+	/*for (int i = 0; i < matrixSize; ++i){
+		for (int j = 0; j < matrixSize; ++j){
+			cout << args->upperMatrix[i][j] << "\t";
+		}
+		cout << endl;
+	}*/
 }
 
 int main(){
@@ -90,19 +108,19 @@ int main(){
 		args->lowerMatrix[i] = new float[matrixSize];
 		args->upperMatrix[i] = new float[matrixSize];
 	}
-	
+	srand (time(NULL));
 	//Random matrix is created.
 	for (int i = 0; i < matrixSize; ++i){
 		for (int j = 0; j < matrixSize; ++j){
-			args->matrix[i][j] = rand() % 100;
+			args->matrix[i][j] = rand() % 10;
 		}
 	}
 	
-	printMatrix(args->matrix);		//Debug
+	//printMatrix(args->matrix);		//Debug
 	
 	//Initializtion of lower matrix.
 	//Diagonal elements are set to 1.
-	for (int i = 0; i < matrixSize; ++i){
+	for (int i = 0; i < matrixSize; ++i){	//O(n)
 		args->lowerMatrix[i][i] = 1;
 	}
 	
