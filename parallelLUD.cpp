@@ -10,15 +10,15 @@
 using namespace std;
 
 typedef struct arrguments{
-	float **matrix;
-	float **lowerMatrix;
-	float **upperMatrix;
 	int threadNo;
 	int col;
 }arg;
 
+float **matrix;
+float **lowerMatrix;
+float **upperMatrix;
 int matrixSize = 0;		//size of matrix.
-const int threadCount = 4;	//Number of threads.
+int threadCount = 4;	//Number of threads.
 
 void printMatrix(float **matrix){
 	for (int i = 0; i < matrixSize; ++i){
@@ -33,29 +33,29 @@ void printMatrix(float **matrix){
 void *getLowerUpperMatrix(void *tmp){
 	arg *args = (arg*)tmp;
 	int col = args->col + 1;
-	float totalRows = matrixSize - col;	//get total rows
-	int rowsPerThread = ceil (totalRows / (float)threadCount);
+	int totalRows = matrixSize - col;	//get total rows
+	int rowsPerThread = totalRows / threadCount;
 	if (rowsPerThread == 0)
 		rowsPerThread = totalRows;
 	int start = col + rowsPerThread*(args->threadNo), end = start + rowsPerThread - 1;
-	if (end >= matrixSize)
-		end = matrixSize - 1;
-	cout << args->threadNo << " " << start << " " << end << endl;
+	
+	//Condition for last thread allocation
+	if (args->threadNo == threadCount-1 or end >= matrixSize)
+		end = matrixSize-1;
+		
+	//cout << args->threadNo << " " << start << " " << end << endl;		Debug
+	upperMatrix[col-1][start-1] = matrix[col-1][start-1];
 	for (int i = start; i <= end;++i){
-		args->lowerMatrix[i][col-1] = args->matrix[i][col-1] / args->matrix[col-1][col-1];
-		args->upperMatrix[col-1][i] = args->matrix[col-1][i];
+		lowerMatrix[i][col-1] = matrix[i][col-1] / matrix[col-1][col-1];
+		upperMatrix[col-1][i] = matrix[col-1][i];
 		for (int j = start; j < matrixSize; ++j){
-			args->matrix[i][j] = args->matrix[i][j] - (args->matrix[i][col-1] / args->matrix[col-1][col-1])*(args->matrix[i][col]);
+			matrix[i][j] = matrix[i][j] - (matrix[i][col-1] / matrix[col-1][col-1])*(matrix[i][col]);
 		}
 	}
-	/*for (int i = 0; i < matrixSize; ++i){
-		cout << args->upperMatrix[col-1][i] << " ";
-	}
-	cout << endl;*/
 	pthread_exit(NULL);
 }
 
-void luDecomposition(arg *&args){
+void luDecomposition(){
 	pthread_t t[threadCount];
 	
 	for (int col = 0; col < matrixSize; ++col){
@@ -63,17 +63,25 @@ void luDecomposition(arg *&args){
 		int swapRowNo = 0;
 		
 		for (int i = col; i < matrixSize; ++i){		//This can be parallalize.
-			if (args->matrix[i][col] > maxPivot){
-				maxPivot = args->matrix[i][col];
+			if (matrix[i][col] > maxPivot){
+				maxPivot = matrix[i][col];
 				swapRowNo = i;
 			}
 		}
 		
-		swap(args->matrix[col], args->matrix[swapRowNo]);
-		//printMatrix(args->matrix);		Debug
-		args->col = col;
+		swap(matrix[col], matrix[swapRowNo]);
+		//printMatrix(matrix);		Debug
+		
+		//Get the requirment of threads.
+		int remainingRows = matrixSize - (col + 1);
+		while (remainingRows < threadCount)
+			threadCount = threadCount / 2;
+			
+		
 		for (int threadNo = 0; threadNo < threadCount; ++threadNo){
+			arg *args = new arg();
 			args->threadNo = threadNo;
+			args->col = col;
 			pthread_create(t+threadNo, NULL, &getLowerUpperMatrix, (void*)args);
 		}
 		
@@ -84,49 +92,50 @@ void luDecomposition(arg *&args){
 	}
 	/*for (int i = 0; i < matrixSize; ++i){
 		for (int j = 0; j < matrixSize; ++j){
-			cout << args->upperMatrix[i][j] << "\t";
+			cout << upperMatrix[i][j] << "\t";
 		}
 		cout << endl;
 	}*/
 }
 
 int main(){
-
-	arg *args = new arg();	
 	
 	cout << "Enter size of the matrix: " << endl;
 	cin >> matrixSize;
 	
 	//Random matrix is created.
-	args->matrix = new float*[matrixSize];
-	args->lowerMatrix = new float*[matrixSize];
-	args->upperMatrix = new float*[matrixSize];
+	matrix = new float*[matrixSize];
+	lowerMatrix = new float*[matrixSize];
+	upperMatrix = new float*[matrixSize];
 	
 	//Dynamic matrix size allocation.
 	for (int i = 0; i < matrixSize; ++i){
-		args->matrix[i] = new float[matrixSize];
-		args->lowerMatrix[i] = new float[matrixSize];
-		args->upperMatrix[i] = new float[matrixSize];
+		matrix[i] = new float[matrixSize];
+		lowerMatrix[i] = new float[matrixSize];
+		upperMatrix[i] = new float[matrixSize];
 	}
 	srand (time(NULL));
 	//Random matrix is created.
 	for (int i = 0; i < matrixSize; ++i){
 		for (int j = 0; j < matrixSize; ++j){
-			args->matrix[i][j] = rand() % 10;
+			matrix[i][j] = rand() % 10;
 		}
 	}
 	
-	//printMatrix(args->matrix);		//Debug
+	//printMatrix(matrix);		//Debug
 	
 	//Initializtion of lower matrix.
 	//Diagonal elements are set to 1.
 	for (int i = 0; i < matrixSize; ++i){	//O(n)
-		args->lowerMatrix[i][i] = 1;
+		lowerMatrix[i][i] = 1;
 	}
 	
 	//printMatrix(lowerMatrix); 	//Debug
 	
 	cout << "Step 1: Random matrix is successfully created of size: " << sizeof(float)*matrixSize*matrixSize << "Bytes." << endl;
-	
-	luDecomposition(args);
+	printMatrix(matrix);
+	luDecomposition();
+	printMatrix(matrix);
+	printMatrix(lowerMatrix);
+	printMatrix(upperMatrix);
 }
