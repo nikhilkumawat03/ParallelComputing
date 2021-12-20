@@ -9,11 +9,27 @@
 
 using namespace std;
 
+//save the given matrix in the file
+void save_matrix(vector <vector <double>> matrix, string fileName){
+	ofstream file;
+	file.open(fileName);
+	if (!file){
+		cerr << "Error: file could not be opened" << endl;
+		exit(1);
+	}
+	for (auto &row : matrix){
+		for (auto element: row){
+			file << element << " ";
+		}
+		file << "\n";
+	}
+}
+
 // prints the given matrix to standard output
 void print_matrix(vector<vector<double>>& matrix) {
     for (auto& row: matrix) {
         for (auto element: row)
-            cout << element << ' ';
+            cout << element << "\t  ";
         cout << endl;
     }
 
@@ -41,6 +57,5 @@ vector<vector<double>> generate_random_matrix(int n) {
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
             matrix[i][j] = rand() % 100;
-
     return matrix;
 }

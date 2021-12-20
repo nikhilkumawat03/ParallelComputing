@@ -6,6 +6,9 @@
 
 using namespace std;
 
+// save the matrix in the file
+void save_matrix(vector <vector <double>>, string);
+
 // prints the matrix entries
 void print_matrix(vector<vector<double>>& matrix);
 
