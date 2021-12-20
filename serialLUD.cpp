@@ -1,3 +1,8 @@
+// Author: Nikhil Kumawat, chandrakishorsingh
+// Date: 06/12/2021
+// Program: LU Decomposition using Gaussian Elimination
+
+
 #include <iostream>
 #include <bits/stdc++.h>
 #include "utils.h"
@@ -47,7 +52,8 @@ int main(int argc, char** argv) {
     print_matrix(result.second);
 }
 
-pair<vector<vector<double>>, vector<vector<double>>> findLU(vector<vector<double>>& matrix) {
+pair<vector<vector<double>>, vector<vector<double>>> findLU
+(vector<vector<double>>& matrix) {
     // declare permutation, lower and upper matrices
     int size = matrix.size();
     vector<int> permutation(size);
@@ -62,33 +68,37 @@ pair<vector<vector<double>>, vector<vector<double>>> findLU(vector<vector<double
     for (int i = 0; i < size; i++)
       permutation[i] = i;
 
-    for(int k=0; k<size; k++) {
-        double maxEle=0;
-        int k1;
-        for(int i=k; i<size; i++) {
+    for(int k = 0; k < size; k++) {
+        double maxEle = 0;
+        int swapRowNo = k;
+        for(int i = k; i < size; i++) {
             if(maxEle < abs(matrix[i][k])) {
                 maxEle = abs(matrix[i][k]);
-                k1 = i;
+                swapRowNo = i;
             }
         }
-        if(maxEle==0) {
+        if(maxEle == 0) {
             cout << "Given matrix is singular. LU decomposition can't be calculated.\n";
             exit(1);
         }
-        swap(permutation[k], permutation[k1]);
-        matrix[k].swap(matrix[k1]);
-        for(int i=0; i<k; i++) {
-            swap(lower[k][i], lower[k1][i]);
+        
+        swap(permutation[k], permutation[swapRowNo]);
+        matrix[k].swap(matrix[swapRowNo]);
+        for(int i = 0; i < k; i++) {
+            swap(lower[k][i], lower[swapRowNo][i]);
         }
         upper[k][k] = matrix[k][k];
-
-        for(int i=k+1; i<size; i++) {
+        for(int i = k+1; i < size; i++) {
             lower[i][k] = matrix[i][k] / upper[k][k];
             upper[k][i] = matrix[k][i];
+        }
+        for (int i = k + 1; i < size; ++i){
             for(int j=k+1; j<size; j++) {
                 matrix[i][j] -= lower[i][k] * upper[k][j];
             }
         }
+        print_matrix(matrix);
+        cout << "------------------------------" << endl;
     }
 
     // return the upper and lower triangular matrices
