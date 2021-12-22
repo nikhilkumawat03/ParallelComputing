@@ -1,11 +1,14 @@
-// Author: Nikhil Kumawat, Chandrakishor
+// Author: Nikhil Kumawat
 // Date: 06/12/2021
 // Program: LU Decomposition using Gaussian Elimination
 
 #include <iostream>
-#include <climits>
 #include <pthread.h>
+#include <fstream>
+#include <climits>
+#include <vector>
 #include <cmath>
+#include "utils.h"
 
 using namespace std;
 
@@ -14,21 +17,12 @@ typedef struct arrguments{
 	int col;
 }arg;
 
-float **matrix;
-float **lowerMatrix;
-float **upperMatrix;
+vector <vector <double>> matrix;
+vector <vector <double>> lowerMatrix;
+vector <vector <double>> upperMatrix;
+vector <vector <double>> permutationMatrix;
 int matrixSize = 0;		//size of matrix.
 int threadCount = 4;	//Number of threads.
-
-void printMatrix(float **matrix){
-	for (int i = 0; i < matrixSize; ++i){
-		for (int j = 0; j < matrixSize; ++j){
-			cout << matrix[i][j] << "\t";
-		}
-		cout << endl;
-	}
-	cout << "-------------------------------\n";
-}
 
 void *getLowerUpperMatrix(void *tmp){
 	arg *args = (arg*)tmp;
@@ -43,13 +37,10 @@ void *getLowerUpperMatrix(void *tmp){
 	if (args->threadNo == threadCount-1 or end >= matrixSize)
 		end = matrixSize-1;
 		
-	//cout << args->threadNo << " " << start << " " << end << endl;		Debug
-	upperMatrix[col-1][start-1] = matrix[col-1][start-1];
-	for (int i = start; i <= end;++i){
-		lowerMatrix[i][col-1] = matrix[i][col-1] / matrix[col-1][col-1];
-		upperMatrix[col-1][i] = matrix[col-1][i];
-		for (int j = start; j < matrixSize; ++j){
-			matrix[i][j] = matrix[i][j] - (matrix[i][col-1] / matrix[col-1][col-1])*(matrix[i][col]);
+	//cout << args->threadNo << " " << start << " " << end << endl;		//Debug
+	for (int i = start; i <= end;++i){		//parallalize
+		for (int j = col; j < matrixSize; ++j){
+			matrix[i][j] -= lowerMatrix[i][col-1]*upperMatrix[col-1][j];
 		}
 	}
 	pthread_exit(NULL);
@@ -59,18 +50,34 @@ void luDecomposition(){
 	pthread_t t[threadCount];
 	
 	for (int col = 0; col < matrixSize; ++col){
-		int maxPivot = INT_MIN;
-		int swapRowNo = 0;
+		double maxPivot = 0;
+		int swapRowNo = col;
 		
 		for (int i = col; i < matrixSize; ++i){		//This can be parallalize.
-			if (matrix[i][col] > maxPivot){
-				maxPivot = matrix[i][col];
+			if (abs(matrix[i][col]) > maxPivot){
+				maxPivot = abs(matrix[i][col]);
 				swapRowNo = i;
 			}
 		}
 		
+		if(maxPivot == 0) {
+            cout << "Given matrix is singular. LU decomposition can't be calculated.\n";
+            exit(1);
+        }
+        
+        swap(permutationMatrix[col], permutationMatrix[swapRowNo]);
 		swap(matrix[col], matrix[swapRowNo]);
-		//printMatrix(matrix);		Debug
+		
+		for(int i = 0; i < col; i++) {			//This can be parallalize
+            swap(lowerMatrix[col][i], lowerMatrix[swapRowNo][i]);
+        }
+        
+        upperMatrix[col][col] = matrix[col][col];
+
+        for(int i = col+1; i < matrixSize; i++) {	//This can be parallalize
+            lowerMatrix[i][col] = matrix[i][col] / upperMatrix[col][col];
+            upperMatrix[col][i] = matrix[col][i];
+        }
 		
 		//Get the requirment of threads.
 		int remainingRows = matrixSize - (col + 1);
@@ -87,55 +94,51 @@ void luDecomposition(){
 		
 		for (int i = 0; i < threadCount; ++i)
 			pthread_join(t[i], NULL);
-			
-		
 	}
-	/*for (int i = 0; i < matrixSize; ++i){
-		for (int j = 0; j < matrixSize; ++j){
-			cout << upperMatrix[i][j] << "\t";
-		}
-		cout << endl;
-	}*/
 }
 
-int main(){
+int main(int argc, char ** argv){
 	
-	cout << "Enter size of the matrix: " << endl;
-	cin >> matrixSize;
+	//Matrix input
+	if (argc == 3) {
+        // expected arguments are `-n` and `size`
+        // generates a matrix of order`size` with random values
+        matrixSize = atoi(argv[2]);
+        matrix = generate_random_matrix(matrixSize);
+    } 
+    else if (argc == 2) {
+        // expected argument is `fileName`
+        // first line contains the size of matrix and further lines contains the entries of matrix
+        ifstream file;
+        file.open(argv[1], ios::in);
+        if (!file.is_open()) {
+          cout << "Can't open the file. Exiting..." << endl;
+          exit(1);
+        }
+
+        matrix = read_matrix(file);
+        matrixSize = matrix.size();
+    } 
+    else {
+        // exit if program is executed in none of the above format
+        cout << "Either provide size of the matrix or the entire matrix from an input file." << endl;
+        exit(1);
+    }
+    
+    upperMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
+	lowerMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
+	permutationMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
 	
-	//Random matrix is created.
-	matrix = new float*[matrixSize];
-	lowerMatrix = new float*[matrixSize];
-	upperMatrix = new float*[matrixSize];
-	
-	//Dynamic matrix size allocation.
-	for (int i = 0; i < matrixSize; ++i){
-		matrix[i] = new float[matrixSize];
-		lowerMatrix[i] = new float[matrixSize];
-		upperMatrix[i] = new float[matrixSize];
-	}
-	srand (time(NULL));
-	//Random matrix is created.
-	for (int i = 0; i < matrixSize; ++i){
-		for (int j = 0; j < matrixSize; ++j){
-			matrix[i][j] = rand() % 10;
-		}
-	}
-	
-	//printMatrix(matrix);		//Debug
-	
-	//Initializtion of lower matrix.
+	//Initializtion of lower matrix and permutation matrix.
 	//Diagonal elements are set to 1.
 	for (int i = 0; i < matrixSize; ++i){	//O(n)
 		lowerMatrix[i][i] = 1;
+		permutationMatrix[i][i] = 1;
 	}
 	
-	//printMatrix(lowerMatrix); 	//Debug
-	
-	cout << "Step 1: Random matrix is successfully created of size: " << sizeof(float)*matrixSize*matrixSize << "Bytes." << endl;
-	printMatrix(matrix);
 	luDecomposition();
-	printMatrix(matrix);
-	printMatrix(lowerMatrix);
-	printMatrix(upperMatrix);
+	
+	save_matrix(lowerMatrix, "lowerMatrix");
+	save_matrix(upperMatrix, "upperMatrix");
+	save_matrix(permutationMatrix, "permutationMatrix");
 }
