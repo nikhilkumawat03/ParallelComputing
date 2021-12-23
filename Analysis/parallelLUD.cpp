@@ -10,7 +10,11 @@
 #include <cmath>
 #include "utils.h"
 #include <time.h>
+#include <sys/wait.h>
 #include <sys/time.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -110,10 +114,10 @@ void luDecomposition(){
 		}
 		gettimeofday( &tend, NULL );
 		
-		exectime = (tend.tv_sec - tstart.tv_sec) * 1000.0; // sec to ms
-  		exectime += (tend.tv_usec - tstart.tv_usec) / 1000.0; // us to ms
+		pexectime = (tend.tv_sec - tstart.tv_sec) * 1000.0; // sec to ms
+  		pexectime += (tend.tv_usec - tstart.tv_usec) / 1000.0; // us to ms
   		
-  		string stats = to_string(matrixSize)+", "+to_string(noOfThreads)+", "+to_string(exectime/1000.0) + "\n";
+  		string stats = to_string(matrixSize)+", "+ to_string(noOfThreads)+", "+to_string(pexectime/1000.0) + ", "+ to_string(exectime/1000.0) +"\n";
   		outputFile << stats;
 		//cout << "MatrixSize: " << matrixSize << " ThreadCount: " << noOfThreads << " Time" << endl;
 	}
@@ -136,6 +140,15 @@ int main(){
 			lowerMatrix[i][i] = 1;
 			permutationMatrix[i][i] = 1;
 		}
+		gettimeofday( &tstart, NULL );
+		
+		findLU(matrix);		//Serial Computation
+		
+		gettimeofday( &tend, NULL );
+		
+		exectime = (tend.tv_sec - tstart.tv_sec) * 1000.0; // sec to ms
+  		exectime += (tend.tv_usec - tstart.tv_usec) / 1000.0; // us to ms
+  		
 		luDecomposition();
 		
 		matrix.clear();

@@ -60,3 +60,52 @@ vector<vector<double>> generate_random_matrix(int n) {
             matrix[i][j] = rand() % 100;
     return matrix;
 }
+
+// To get the LU decompositions
+void findLU(vector<vector<double>>& matrix) {
+    
+    int matrixSize = matrix.size();
+	// declare permutation, lower and upper matrices
+	vector<vector<double>> permutationMatrix(matrixSize, vector <double>(matrixSize));
+	vector<vector<double>> upperMatrix(matrixSize, vector<double>(matrixSize));
+	vector<vector<double>> lowerMatrix(matrixSize, vector<double>(matrixSize));
+    // initialize lower triangular matrix, and permutation matrix
+    for (int i = 0; i < matrixSize; i++){
+        lowerMatrix[i][i] = 1;
+      	permutationMatrix[i][i] = 1;
+     }
+
+    for(int col = 0; col < matrixSize; col++) {
+        double maxEle = 0;
+        int swapRowNo = col;
+        for(int i = col; i < matrixSize; i++) {
+            if(maxEle < abs(matrix[i][col])) {
+                maxEle = abs(matrix[i][col]);
+                swapRowNo = i;
+            }
+        }
+        if(maxEle == 0) {
+            cout << "Given matrix is singular. LU decomposition can't be calculated.\n";
+            exit(1);
+        }
+        
+        swap(permutationMatrix[col], permutationMatrix[swapRowNo]);
+		swap(matrix[col], matrix[swapRowNo]);
+        
+        for(int i = 0; i < col; i++) {
+            swap(lowerMatrix[col][i], lowerMatrix[swapRowNo][i]);
+        }
+        
+        upperMatrix[col][col] = matrix[col][col];
+        
+        for(int i = col+1; i < matrixSize; i++) {
+            lowerMatrix[i][col] = matrix[i][col] / upperMatrix[col][col];
+            upperMatrix[col][i] = matrix[col][i];
+        }
+        for (int i = col + 1; i < matrixSize; ++i){
+            for(int j = col+1; j < matrixSize; j++) {
+                matrix[i][j] -= lowerMatrix[i][col] * upperMatrix[col][j];
+            }
+        }
+    }
+}

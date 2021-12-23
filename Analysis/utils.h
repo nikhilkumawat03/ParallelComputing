@@ -17,3 +17,6 @@ vector<vector<double>> read_matrix(ifstream& file);
 
 // returns a matrix with randomly generated entries
 vector<vector<double>> generate_random_matrix(int n);
+
+// find the LU Decomposition
+void findLU(vector<vector<double>>& matrix);
