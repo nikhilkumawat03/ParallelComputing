@@ -42,11 +42,11 @@ int main(int argc, char** argv) {
   }
 
   // print the matrix and upper and lower triangular matrices
-  save_matrix(matrix, "originalMatrix");
+  save_matrix(matrix, ORIGINAL_MATRIX_FILE_NAME);
 
   auto result = findLU(matrix);
-  save_matrix(result.first, "lowerMatrix");
-  save_matrix(result.second, "upperMatrix");
+  save_matrix(result.first, LOWER_MATRIX_FILE_NAME);
+  save_matrix(result.second, UPPER_MATRIX_FILE_NAME);
 }
 
 pair<vector<vector<double>>, vector<vector<double>>> findLU
@@ -103,7 +103,7 @@ pair<vector<vector<double>>, vector<vector<double>>> findLU
       }
     }
   }
-  save_matrix(permutationMatrix, "permutationMatrix");
+  save_matrix(permutationMatrix, PERMUTATION_MATRIX_FILE_NAME);
   // return the upper and lower triangular matrices
   return { lowerMatrix, upperMatrix };
 }

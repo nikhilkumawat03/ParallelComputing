@@ -17,6 +17,10 @@ void save_matrix(vector <vector <double>> matrix, string fileName){
 		cerr << "Error: file could not be opened" << endl;
 		exit(1);
 	}
+
+        int n = matrix.size();
+        file << n << endl;
+
 	for (auto &row : matrix){
 		for (auto element: row){
 			file << element << " ";
@@ -58,4 +62,36 @@ vector<vector<double>> generate_random_matrix(int n) {
         for (int j = 0; j < n; j++)
             matrix[i][j] = rand() % 100;
     return matrix;
+}
+
+// multiplies two matrices and gives its result
+vector<vector<double>> multiply(vector<vector<double>>& mat1, vector<vector<double>>& mat2) {
+  int rows = mat1.size();
+  int cols = mat2[0].size();
+
+  vector<vector<double>> result(rows, vector<double>(cols));
+  for (int i = 0; i < rows; i++)
+    for (int j = 0; j < cols; j++)
+      for (int k = 0; k < mat1[0].size(); k++)
+        result[i][j] += mat1[i][k] * mat2[k][j];
+
+  return result;
+}
+
+// subtracts two matrices and gives its result
+vector<vector<double>> subtract(vector<vector<double>>& mat1, vector<vector<double>>& mat2) {
+  if (mat1.size() != mat2.size() || mat1[0].size() != mat2[0].size()) {
+    cerr << "Can't subtract matrices of different sizes" << endl;
+    exit(1);
+  }
+
+  int rows = mat1.size();
+  int cols = mat1[0].size();
+
+  vector<vector<double>> result(rows, vector<double>(cols));
+  for (int i = 0; i < rows; i++)
+    for (int j = 0; j < cols; j++)
+      result[i][j] = mat1[i][j] - mat2[i][j];
+
+  return result;
 }
