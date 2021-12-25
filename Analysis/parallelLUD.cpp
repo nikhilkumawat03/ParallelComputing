@@ -128,7 +128,7 @@ void *getMaxPivotPos(void *argument){
 void luDecomposition(){
 	pthread_t t[threads];
 	
-	for (int noOfThreads = 1; noOfThreads <= threads; ++noOfThreads){
+	for (int noOfThreads = 1; noOfThreads <= threads; noOfThreads+=1){
 		gettimeofday( &tstart, NULL );
 		threadCount = noOfThreads;
 		for (int col = 0; col < matrixSize; ++col){
@@ -142,13 +142,16 @@ void luDecomposition(){
 		
 		//*******************************************************************************
 		//Paralalising finding max. using getMaxPivotPos() function
-		/*for (int i = col; i < matrixSize; ++i){		//This can be parallalize.
-			if (abs(matrix[i][col]) > maxPivot){
-				maxPivot = abs(matrix[i][col]);
-				swapRowNo = i;
+		if (remainingRows <= 300){
+			for (int i = col; i < matrixSize; ++i){		//This can be parallalize.
+				if (abs(matrix[i][col]) > maxPivot){
+					maxPivot = abs(matrix[i][col]);
+					swapRowNo = i;
+				}
 			}
-		}*/
+		}
 		/*print_matrix(matrix);*/
+		else{
 		for (int threadNo = 0; threadNo < threadCount; ++threadNo){
 			arg *args = new arg();
 			args->threadNo = threadNo;
@@ -168,17 +171,21 @@ void luDecomposition(){
             cout << "Given matrix is singular. LU decomposition can't be calculated.\n";
             exit(1);
         }
+		}
         //**********************************************************************************
         
         swap(permutationMatrix[col], permutationMatrix[swapRowNo]);		//O(1)
 		swap(matrix[col], matrix[swapRowNo]);							//O(1)
 		
-		//*********************************************************************************
-		/*for(int i = 0; i < col; i++) {			//This can be parallalize
-            swap(lowerMatrix[col][i], lowerMatrix[swapRowNo][i]);
-        }*/
+	//*********************************************************************************
+	if (col <= 400){
+		for(int i = 0; i < col; i++) {			//This can be parallalize
+            		swap(lowerMatrix[col][i], lowerMatrix[swapRowNo][i]);
+        	}
+	}
         // Parallaising swapping using parallelSwap() function
-        int cntThread = 0;
+	else{
+	int cntThread = 0;
         for (int threadNo = 0; threadNo < threadCount; ++threadNo){
         	swapp *args = new swapp();
         	args->swapRowNo = swapRowNo;
@@ -201,7 +208,8 @@ void luDecomposition(){
         } 
        	for (int i = 0; i <= cntThread; ++i)
 				pthread_join(t[i], NULL);
-        //*********************************************************************************
+	}
+	//*********************************************************************************
         
         
 		upperMatrix[col][col] = matrix[col][col];
@@ -251,7 +259,7 @@ void luDecomposition(){
 int main(){
 
 	outputFile.open("stats", ios::out);
-    for (matrixSize = 100; matrixSize <= 1000; matrixSize += 200){
+    for (matrixSize = 100; matrixSize <= 1000; matrixSize += 100){
     	matrix.resize(matrixSize, vector <double> (matrixSize, 0));
 		upperMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
 		lowerMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
