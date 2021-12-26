@@ -42,10 +42,10 @@ int main(int argc, char** argv) {
 
     // print the matrix and upper and lower triangular matrices
     save_matrix(matrix, ORIGINAL_MATRIX_FILE_NAME);
-	
     auto result = findLU(matrix);
     save_matrix(result.first, LOWER_MATRIX_FILE_NAME);
     save_matrix(result.second, UPPER_MATRIX_FILE_NAME);
+    
 }
 
 pair<vector<vector<double>>, vector<vector<double>>> findLU

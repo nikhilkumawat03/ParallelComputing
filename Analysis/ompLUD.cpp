@@ -14,17 +14,27 @@
 using namespace std;
 struct timeval tstart, tend;
 double pexectime, exectime;
-int threads = 4;
+int threads = 0;
 fstream outputFile;
 
 void findLUOpenMP(vector<vector<double>>& matrix);
 
 int main(int argc, char** argv) {
   // declare matrix and size
+  	cout << "Enter maximum number of threads for Analysis: (1-4)" << endl;
+	cin >> threads;
   	vector<vector<double>> matrix;
+  	vector<vector<double>> saveMatrix;
     outputFile.open("openMPStats", ios::out);
-    for (int matrixSize = 50; matrixSize <= 500; matrixSize += 50){
+    for (int matrixSize = 100; matrixSize <= 1000; matrixSize += 100){
     	matrix = generate_random_matrix(matrixSize);
+    	saveMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
+    	
+    	for (int i = 0; i < matrixSize; ++i){
+			for (int j=  0; j < matrixSize; ++j){
+				saveMatrix[i][j] = matrix[i][j];
+			}
+		}
     	
     	gettimeofday( &tstart, NULL );
 		findLU(matrix);		//Serial Computation
@@ -35,6 +45,7 @@ int main(int argc, char** argv) {
 		
     	findLUOpenMP(matrix);
     	matrix.clear();
+    	saveMatrix.clear();
     }
   	
 }

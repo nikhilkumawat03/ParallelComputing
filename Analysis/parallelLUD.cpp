@@ -38,11 +38,12 @@ fstream outputFile;
 vector <vector <double>> matrix;
 vector <vector <double>> lowerMatrix;
 vector <vector <double>> upperMatrix;
+vector <vector <double>> saveMatrix;
 vector <vector <double>> permutationMatrix;
 int matrixSize = 0;		//size of matrix.
 int threadCount = 0;	//Number of threads.
-int threads = 4;
-int rowSwap[4][2];
+int threads = 0;
+int **rowSwap;
 
 void *getLowerUpperMatrix(void *tmp){
 	arg *args = (arg*)tmp;
@@ -131,6 +132,11 @@ void luDecomposition(){
 	for (int noOfThreads = 1; noOfThreads <= threads; noOfThreads+=1){
 		gettimeofday( &tstart, NULL );
 		threadCount = noOfThreads;
+		for (int i = 0; i < matrixSize; ++i){
+			for (int j = 0; j < matrixSize; ++j){
+				matrix[i][j] = saveMatrix[i][j];
+			}
+		}
 		for (int col = 0; col < matrixSize; ++col){
 		double maxPivot = 0;
 		int swapRowNo = col;
@@ -152,69 +158,65 @@ void luDecomposition(){
 		}
 		/*print_matrix(matrix);*/
 		else{
-		for (int threadNo = 0; threadNo < threadCount; ++threadNo){
-			arg *args = new arg();
-			args->threadNo = threadNo;
-			args->col = col;
-			pthread_create(t+threadNo, NULL, &getMaxPivotPos, (void*)args);
-		}
-		
-		for (int i = 0; i < threadCount; ++i){
-			pthread_join(t[i], NULL);
-			if (maxPivot < rowSwap[i][1]){
-				maxPivot = rowSwap[i][1];
-				swapRowNo = rowSwap[i][0];
+			for (int threadNo = 0; threadNo < threadCount; ++threadNo){
+				arg *args = new arg();
+				args->threadNo = threadNo;
+				args->col = col;
+				pthread_create(t+threadNo, NULL, &getMaxPivotPos, (void*)args);
 			}
-		}
-		maxPivot = abs(matrix[swapRowNo][col]);
-		if(maxPivot == 0) {
-            cout << "Given matrix is singular. LU decomposition can't be calculated.\n";
-            exit(1);
-        }
+			
+			for (int i = 0; i < threadCount; ++i){
+				pthread_join(t[i], NULL);
+				if (maxPivot < rowSwap[i][1]){
+					maxPivot = rowSwap[i][1];
+					swapRowNo = rowSwap[i][0];
+				}
+			}
+			maxPivot = abs(matrix[swapRowNo][col]);
+			if(maxPivot == 0) {
+		        cout << "Given matrix is singular. LU decomposition can't be calculated.\n";
+		        exit(1);
+		    }
 		}
         //**********************************************************************************
         
         swap(permutationMatrix[col], permutationMatrix[swapRowNo]);		//O(1)
 		swap(matrix[col], matrix[swapRowNo]);							//O(1)
 		
-	//*********************************************************************************
-	if (col <= 400){
-		for(int i = 0; i < col; i++) {			//This can be parallalize
-            		swap(lowerMatrix[col][i], lowerMatrix[swapRowNo][i]);
-        	}
-	}
-        // Parallaising swapping using parallelSwap() function
-	else{
-	int cntThread = 0;
-        for (int threadNo = 0; threadNo < threadCount; ++threadNo){
-        	swapp *args = new swapp();
-        	args->swapRowNo = swapRowNo;
-        	args->col = col;
-        	if (threadCount > col){
-        		args->start = 0;
-        		args->end = col-1;
-        	}
-        	else{
-        		args->start = threadNo*(col/threadCount);
-        		args->end = args->start + col/threadCount - 1;
-        		if (threadNo == threadCount-1)
-        			args->end = col-1;
-        	}
-			pthread_create(t+threadNo, NULL, &parallelSwap, (void*)args);
-			if (args->end == col-1){
-				cntThread = threadNo;
-				break;
-			}
-        } 
-       	for (int i = 0; i <= cntThread; ++i)
-				pthread_join(t[i], NULL);
-	}
-	//*********************************************************************************
-        
-        
+		//*********************************************************************************
+		if (col <= 400){
+			for(int i = 0; i < col; i++) {			//This can be parallalize
+		        		swap(lowerMatrix[col][i], lowerMatrix[swapRowNo][i]);
+		    	}
+		}
+		    // Parallaising swapping using parallelSwap() function
+		else{
+			int cntThread = 0;
+		    for (int threadNo = 0; threadNo < threadCount; ++threadNo){
+		    	swapp *args = new swapp();
+		    	args->swapRowNo = swapRowNo;
+		    	args->col = col;
+		    	if (threadCount > col){
+		    		args->start = 0;
+		    		args->end = col-1;
+		    	}
+		    	else{
+		    		args->start = threadNo*(col/threadCount);
+		    		args->end = args->start + col/threadCount - 1;
+		    		if (threadNo == threadCount-1)
+		    			args->end = col-1;
+		    	}
+				pthread_create(t+threadNo, NULL, &parallelSwap, (void*)args);
+				if (args->end == col-1){
+					cntThread = threadNo;
+					break;
+				}
+		    } 
+		   	for (int i = 0; i <= cntThread; ++i)
+					pthread_join(t[i], NULL);
+		}
+		//*********************************************************************************
 		upperMatrix[col][col] = matrix[col][col];
-		
-		
 		//*********************************************************************************
 		// Getting lower upper column/row using getLowerUpperRow(void *arguments) function
 		/*for(int i = col+1; i < matrixSize; i++) {	//This can be parallalize
@@ -231,9 +233,6 @@ void luDecomposition(){
         for (int i = 0; i < threadCount; ++i)
 			pthread_join(t[i], NULL);
 		//*********************************************************************************
-		
-		
-		
 		for (int threadNo = 0; threadNo < threadCount; ++threadNo){
 			arg *args = new arg();
 			args->threadNo = threadNo;
@@ -244,7 +243,7 @@ void luDecomposition(){
 		for (int i = 0; i < threadCount; ++i)
 			pthread_join(t[i], NULL);
 		//print_matrix(matrix);
-	}
+		}
 		gettimeofday( &tend, NULL );
 		
 		pexectime = (tend.tv_sec - tstart.tv_sec) * 1000.0; // sec to ms
@@ -259,14 +258,25 @@ void luDecomposition(){
 int main(){
 
 	outputFile.open("stats", ios::out);
+	cout << "Enter maximum number of threads for Analysis: (1-4)" << endl;
+	cin >> threads;
+	rowSwap = new int*[threads];
+	for (int i = 0; i < threads; ++i){
+		rowSwap[i] = new int[2];
+	}
     for (matrixSize = 100; matrixSize <= 1000; matrixSize += 100){
     	matrix.resize(matrixSize, vector <double> (matrixSize, 0));
 		upperMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
 		lowerMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
+		saveMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
 		permutationMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
 		
 		matrix = generate_random_matrix(matrixSize);
-		
+		for (int i = 0; i < matrixSize; ++i){
+			for (int j=  0; j < matrixSize; ++j){
+				saveMatrix[i][j] = matrix[i][j];
+			}
+		}
 		//Initializtion of lower matrix and permutation matrix.
 		//Diagonal elements are set to 1.
 		for (int i = 0; i < matrixSize; ++i){	//O(n)
@@ -285,6 +295,7 @@ int main(){
 		luDecomposition();
 		
 		matrix.clear();
+		saveMatrix.clear();
 		upperMatrix.clear();
 		lowerMatrix.clear();
 		permutationMatrix.clear();

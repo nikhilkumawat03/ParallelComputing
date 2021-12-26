@@ -30,8 +30,8 @@ vector <vector <double>> lowerMatrix;
 vector <vector <double>> upperMatrix;
 vector <vector <double>> permutationMatrix;
 int matrixSize = 0;		//size of matrix.
-int threadCount = 4;	//Number of threads.
-int rowSwap[4][2];
+int threadCount = 0;	//Number of threads.
+int **rowSwap;
 
 
 void *getLowerUpperMatrix(void *tmp){
@@ -103,7 +103,7 @@ void *getMaxPivotPos(void *argument){
 	if (args->threadNo == threadCount-1 or end >= matrixSize)
 		end = matrixSize-1;
 		
-	cout << args->threadNo << " " << start << " " << end << endl;		//Debug
+	//cout << args->threadNo << " " << start << " " << end << endl;		//Debug
 	for (int i = start; i <= end; ++i){		//This can be parallalize.
 		if (abs(matrix[i][col]) > maxPivot){
 			maxPivot = abs(matrix[i][col]);
@@ -222,7 +222,7 @@ void luDecomposition(){
 		
 		for (int i = 0; i < threadCount; ++i)
 			pthread_join(t[i], NULL);
-		print_matrix(matrix);
+		//print_matrix(matrix);
 	}
 }
 
@@ -256,6 +256,14 @@ int main(int argc, char ** argv){
         exit(1);
     }
     
+    cout << "Enter number of threads 1-4: " << endl;
+    cin >> threadCount;
+    
+    rowSwap = new int*[threadCount];
+    for (int i = 0; i < threadCount; ++i){
+    	rowSwap[i] = new int[2];
+    }
+    
     upperMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
 	lowerMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
 	permutationMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
@@ -268,7 +276,6 @@ int main(int argc, char ** argv){
 	}
 	
 	luDecomposition();
-	//print_matrix(lowerMatrix);
 	save_matrix(lowerMatrix, LOWER_MATRIX_FILE_NAME);
 	save_matrix(upperMatrix, UPPER_MATRIX_FILE_NAME);
 	save_matrix(permutationMatrix, PERMUTATION_MATRIX_FILE_NAME);

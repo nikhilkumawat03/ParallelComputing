@@ -58,12 +58,15 @@ pair<vector<vector<double>>, vector<vector<double>>> findLU
   	vector<vector<double>> permutationMatrix(matrixSize, vector <double>(matrixSize));
   	vector<vector<double>> upperMatrix(matrixSize, vector<double>(matrixSize));
   	vector<vector<double>> lowerMatrix(matrixSize, vector<double>(matrixSize));
-
   // initialize lower triangular matrix, and permutation matrix
   	for (int i = 0; i < matrixSize; i++){
     	lowerMatrix[i][i] = 1;
     	permutationMatrix[i][i] = 1;
   	}
+  	int threads = 0;
+	cout << "Enter maximum number of threads for Analysis: (1-4)" << endl;
+	cin >> threads;
+	omp_set_num_threads(threads);
 
   	for(int col = 0; col < matrixSize; col++) {
     	double maxEle = 0;

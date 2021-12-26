@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_csv('stats', header=None)
+df = pd.read_csv('openMPStats', header=None)
 #Data preprocessing
 thread1 = []
 thread2 = []
@@ -31,7 +31,7 @@ plotData = pd.DataFrame({"thread1": thread1, "thread2": thread2,
 
 plotData.plot.bar(width=0.5)
 plt.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.7)
-plt.title("pthread Parallel v/s Serial")
+plt.title("open MP Parallel v/s Serial")
 plt.xlabel("Matrix Size")
 plt.ylabel("Execution Time")
 plt.show()
