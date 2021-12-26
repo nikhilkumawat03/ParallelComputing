@@ -11,9 +11,13 @@ make
 echo ""
 echo -e "${GREEN}Compilation of files done.${NC}"; echo ""
 
+echo -e "${GREEN}Generating input file.${NC}"; echo ""
+
+./generateInput
+
 echo -e "${GREEN}Analysing for pthread on different matrix and different thread.${NC}"
 
-./parallelLUD
+./parallelLUD 
 
 echo -e "${GREEN}Plotting graph for pthread.${NC}"
 

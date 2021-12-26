@@ -17,6 +17,10 @@ void save_matrix(vector <vector <double>> matrix, string fileName){
 		cerr << "Error: file could not be opened" << endl;
 		exit(1);
 	}
+
+        int n = matrix.size();
+        file << n << endl;
+
 	for (auto &row : matrix){
 		for (auto element: row){
 			file << element << " ";

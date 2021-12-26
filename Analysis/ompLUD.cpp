@@ -18,16 +18,32 @@ int threads = 0;
 fstream outputFile;
 
 void findLUOpenMP(vector<vector<double>>& matrix);
+vector<vector<double>> saveMatrix;
 
 int main(int argc, char** argv) {
   // declare matrix and size
+  	ifstream inputFile;
+  	inputFile.open("inputFile", ios::in);
+  	
   	cout << "Enter maximum number of threads for Analysis: (1-4)" << endl;
 	cin >> threads;
   	vector<vector<double>> matrix;
-  	vector<vector<double>> saveMatrix;
     outputFile.open("openMPStats", ios::out);
-    for (int matrixSize = 100; matrixSize <= 1000; matrixSize += 100){
-    	matrix = generate_random_matrix(matrixSize);
+    
+    int noOfMatrices = 0;
+	inputFile >> noOfMatrices;
+    
+   for (int itr = 0; itr < noOfMatrices; itr++){
+   		int matrixSize;
+   		inputFile >> matrixSize;
+   		matrix.resize(matrixSize, vector <double> (matrixSize, 0)); 	
+    	for (int i = 0; i < matrixSize; ++i){
+			for (int j =  0; j < matrixSize; ++j){
+				inputFile >> matrix[i][j];
+			}
+		}
+			
+   		
     	saveMatrix.resize(matrixSize, vector <double> (matrixSize, 0));
     	
     	for (int i = 0; i < matrixSize; ++i){
@@ -42,7 +58,7 @@ int main(int argc, char** argv) {
 		
 		exectime = (tend.tv_sec - tstart.tv_sec) * 1000.0; // sec to ms
   		exectime += (tend.tv_usec - tstart.tv_usec) / 1000.0; // us to ms
-		
+		cout << "**************" << endl;
     	findLUOpenMP(matrix);
     	matrix.clear();
     	saveMatrix.clear();
@@ -57,16 +73,23 @@ void findLUOpenMP (vector<vector<double>>& matrix) {
 	vector<vector<double>> upperMatrix(matrixSize, vector<double>(matrixSize));
 	vector<vector<double>> lowerMatrix(matrixSize, vector<double>(matrixSize));
 
-	// initialize lower triangular matrix, and permutation matrix
-	for (int i = 0; i < matrixSize; i++){
-		lowerMatrix[i][i] = 1;
-		permutationMatrix[i][i] = 1;
-	}
 	for (int noOfThreads = 1; noOfThreads <= threads; ++ noOfThreads){
+		
+		for (int i = 0; i < matrixSize; ++i){
+			for (int j = 0; j < matrixSize; ++j){
+				matrix[i][j] = saveMatrix[i][j];
+			}
+		}
+		
+		for (int i = 0; i < matrixSize; ++i){	//O(n)
+			lowerMatrix[i][i] = 1;
+			permutationMatrix[i][i] = 1;
+		}
+		
+		omp_set_num_threads(noOfThreads);
 		
 		gettimeofday( &tstart, NULL );
 		
-		omp_set_num_threads(noOfThreads);
 				
 		for(int col = 0; col < matrixSize; col++) {
 			double maxEle = 0;
@@ -117,6 +140,14 @@ void findLUOpenMP (vector<vector<double>>& matrix) {
   		
   		string stats = to_string(matrixSize)+", "+ to_string(noOfThreads)+", "+to_string(pexectime/1000.0) + ", "+ to_string(exectime/1000.0) +"\n";
   		outputFile << stats;
+  		cout << stats;
+  		
+  		/*if (noOfThreads == 1){
+  			save_matrix(lowerMatrix, "lowerMatrix");
+			save_matrix(upperMatrix, "upperMatrix");
+			save_matrix(permutationMatrix, "permutationMatrix");
+  		}*/
+  		
   		
 	}
 	
